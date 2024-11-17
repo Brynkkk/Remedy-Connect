@@ -1,96 +1,92 @@
-using System.Collections.Generic;
 using UnityEngine;
 
 public class PatientSpawner : MonoBehaviour
 {
-    [Header("Spawn Area Setup")]
-    public Transform[] spawnAreas; // Areas to spawn patients
-    private bool[] isAreaOccupied; // Tracks if an area is occupied
+    public Transform[] spawnPositions;
+    public GameObject patientPrefab;
 
-    [Header("Patient Setup")]
-    public GameObject[] patientPrefabs; // Assign patient prefabs
+    public float spawnInterval = 5f;
+    public float angerTimer = 10f;
 
-    [Header("Timer Settings")]
-    public float spawnTimer = 120f; // Initial spawn timer
-    private float spawnCountdown;
-    public int totalSpawnedPatients = 0;
+    private GameObject[] spawnedPatients;
+    private float spawnTimer;
+
+    [SerializeField]
+    private int totalSpawnedPatients;
 
     void Start()
     {
-        isAreaOccupied = new bool[spawnAreas.Length];
-        spawnCountdown = GetSpawnTimer();
+        spawnedPatients = new GameObject[spawnPositions.Length];
+        spawnTimer = spawnInterval;
     }
 
     void Update()
     {
-        // Reset timer if all spawn areas are empty
-        if (AreAllAreasEmpty())
-        {
-            spawnCountdown = 0f;
-        }
+        spawnTimer -= Time.deltaTime;
 
-        // Countdown and spawn if timer reaches 0
-        if (spawnCountdown > 0)
+        if (spawnTimer <= 0f)
         {
-            spawnCountdown -= Time.deltaTime;
+            TrySpawnPatient();
+            spawnTimer = spawnInterval;
+        }
+    }
+
+    private void TrySpawnPatient()
+    {
+        int emptySpot = FindEmptySpot();
+        if (emptySpot != -1)
+        {
+            SpawnPatientAt(emptySpot);
         }
         else
         {
-            SpawnPatient();
-            spawnCountdown = GetSpawnTimer();
+            Debug.Log("No empty spots available.");
         }
     }
 
-    void SpawnPatient()
+    private int FindEmptySpot()
     {
-        List<int> availableAreas = new List<int>();
-        for (int i = 0; i < isAreaOccupied.Length; i++)
+        for (int i = 0; i < spawnedPatients.Length; i++)
         {
-            if (!isAreaOccupied[i]) availableAreas.Add(i);
+            if (spawnedPatients[i] == null)
+            {
+                return i;
+            }
         }
+        return -1;
+    }
 
-        if (availableAreas.Count > 0)
+    private void SpawnPatientAt(int index)
+    {
+        if (index < 0 || index >= spawnPositions.Length) return;
+
+        GameObject newPatient = Instantiate(patientPrefab, spawnPositions[index].position, Quaternion.identity);
+        spawnedPatients[index] = newPatient;
+
+        totalSpawnedPatients++;
+
+        Patient patientScript = newPatient.GetComponent<Patient>();
+        if (patientScript != null)
         {
-            int chosenIndex = availableAreas[Random.Range(0, availableAreas.Count)];
-            GameObject newPatient = Instantiate(
-                patientPrefabs[Random.Range(0, patientPrefabs.Length)],
-                spawnAreas[chosenIndex].position,
-                Quaternion.identity
-            );
-
-            isAreaOccupied[chosenIndex] = true;
-            totalSpawnedPatients++;
-
-            // Assign spawner data to patient
-            Patient patient = newPatient.GetComponent<Patient>();
-            patient.spawner = this;
-            patient.spawnIndex = chosenIndex;
+            patientScript.Initialize(index, angerTimer, OnPatientDespawned);
         }
     }
 
-    bool AreAllAreasEmpty()
+    public void DespawnPatientManually(int index)
     {
-        foreach (bool occupied in isAreaOccupied)
+        if (index < 0 || index >= spawnedPatients.Length) return;
+
+        if (spawnedPatients[index] != null)
         {
-            if (occupied) return false;
+            Destroy(spawnedPatients[index]);
+            spawnedPatients[index] = null;
         }
-        return true;
     }
 
-    float GetSpawnTimer()
+    private void OnPatientDespawned(int index)
     {
-        if (totalSpawnedPatients <= 3) return 120f;
-        if (totalSpawnedPatients <= 5) return 90f;
-        if (totalSpawnedPatients <= 10) return 75f;
-        if (totalSpawnedPatients <= 15) return 60f;
-        if (totalSpawnedPatients <= 20) return 45f;
-        if (totalSpawnedPatients <= 25) return 30f;
-        if (totalSpawnedPatients <= 50) return 10f;
-        return 5f;
-    }
+        if (index < 0 || index >= spawnedPatients.Length) return;
 
-    public void FreeArea(int index)
-    {
-        isAreaOccupied[index] = false;
+        spawnedPatients[index] = null;
     }
 }
