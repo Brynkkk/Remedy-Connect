@@ -9,9 +9,11 @@ public class EncyclopediaPopup : MonoBehaviour
     public Sprite[] encyclopediaPages;  // Array of encyclopedia images
     private int currentIndex = 0;       // Tracks the current image index
 
-    public Button leftArrow;
-    public Button rightArrow;
-    public Button closeButton;
+    public Button leftArrow;            // Button for navigating to the previous image
+    public Button rightArrow;           // Button for navigating to the next image
+    public Button closeButton;          // Button for closing the popup
+    public Button encyclopediaButton;   // Button to open the encyclopedia
+    public Button changeScreenButton;   // Button to switch cameras (correct reference now)
 
     public Camera mainCamera;           // Reference to the Main Camera
     public Camera screenCamera;         // Reference to the Screen Camera
@@ -25,6 +27,13 @@ public class EncyclopediaPopup : MonoBehaviour
             popup.SetActive(true);
             currentIndex = 0;
             UpdatePopupImage();
+
+            // Disable buttons during popup
+            if (changeScreenButton != null)
+                changeScreenButton.interactable = false;
+
+            if (encyclopediaButton != null)
+                encyclopediaButton.interactable = false;
         }
         else
         {
@@ -37,6 +46,13 @@ public class EncyclopediaPopup : MonoBehaviour
     {
         overlay.SetActive(false);
         popup.SetActive(false);
+
+        // Re-enable buttons after closing popup
+        if (changeScreenButton != null)
+            changeScreenButton.interactable = true;
+
+        if (encyclopediaButton != null)
+            encyclopediaButton.interactable = true;
     }
 
     // Show the previous image
@@ -65,5 +81,28 @@ public class EncyclopediaPopup : MonoBehaviour
         popupImage.sprite = encyclopediaPages[currentIndex];
         leftArrow.interactable = currentIndex > 0;
         rightArrow.interactable = currentIndex < encyclopediaPages.Length - 1;
+    }
+
+    // Dynamically toggle buttons based on active camera
+    void Update()
+    {
+        if (mainCamera.isActiveAndEnabled)
+        {
+            // Show buttons only on the Main Camera
+            if (changeScreenButton != null)
+                changeScreenButton.gameObject.SetActive(true);
+
+            if (encyclopediaButton != null)
+                encyclopediaButton.gameObject.SetActive(true);
+        }
+        else if (screenCamera.isActiveAndEnabled)
+        {
+            // Hide buttons on the Screen Camera
+            if (changeScreenButton != null)
+                changeScreenButton.gameObject.SetActive(false);
+
+            if (encyclopediaButton != null)
+                encyclopediaButton.gameObject.SetActive(false);
+        }
     }
 }
